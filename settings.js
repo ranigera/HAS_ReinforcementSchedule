@@ -40,12 +40,16 @@ window.app_settings = {
 		// for options 2 and 3:
 		daysToHideAt: { // detemine according to group name
 			short_training: [3, 4, 5],
+			VR_training: [3, 4, 5],
+			VI_training: [3, 4, 5],
 			long_training: [10, 11, 12],
 			long_training_parallel_manipulations: [3, 4, 5, 10, 11, 12],
 		}, // [2, 3, 4, 5, 8, 10, 12],
 		// option 2: relevant if hideOnlyUnderManipulationPeriods is false and toPersonalizedOutcomeHidingTime is true;
 		daysToBaseUponHidingTime: { // detemine according to group name
 			short_training: [[2], [2], [2]],
+			VR_training: [[2], [2], [2]],
+			VI_training: [[2], [2], [2]],
 			long_training: [[9], [9], [9]],
 			long_training_parallel_manipulations: [[2], [2], [2], [9], [9], [9]], // [[1], [1, 2], [2, 3], [3], [5, 6, 7], [9], [10, 11]], // This should specify an array for each value in daysToHideAt
 		}, // [2, 3, 4, 5, 8, 10, 12],
@@ -55,10 +59,14 @@ window.app_settings = {
 		hour_at_day_to_hideOutcome_anyway: 12,
 	},
 	rewards: {
-		isRatioSchedule: true,
-		winningRate: 3, //per entries if isRatioSchedule is true; per seconds if isRatioSchedule is false, 
-		winningChancePerUnit: function () {
-			return 1 / this.winningRate;
+		//isRatioSchedule: true,
+		winningRateVR_schedule: 3, //per entries if isRatioSchedule is true; per seconds if isRatioSchedule is false, 
+		winningRateVI_schedule: 30, //per entries if isRatioSchedule is true; per seconds if isRatioSchedule is false, 
+		winningChancePerUnitVR_schedule: function () {
+			return 1 / this.winningRateVR_schedule;
+		},
+		winningChancePerUnitVI_schedule: function () {
+			return 1 / this.winningRateVI_schedule;
 		},
 
 		isVariableReward: false,
@@ -68,10 +76,10 @@ window.app_settings = {
 		// for constant reward:
 		rewardConstantSum: 15,
 
-		// Sure win stuff:
-		winAnywayIfMultipleNonWins: true, // this is to make sure that in case a participant did not win many times they will.
+		// Sure win stuff: ** NOT USED IN THE reinforcment schedule comparison version **
+		winAnywayIfMultipleNonWins: false, // this is to make sure that in case a participant did not win many times they will.
 		RelativeNonWinUnitsBeforeSureWinning: function () {
-			return this.winningRate * 2; // this means that if for example this is a variable ratio of 10, after 20 no wins the 21 attempt will be a sure win.
+			return this.winningRateVR_schedule * 2; // this means that if for example this is a variable ratio of 10, after 20 no wins the 21 attempt will be a sure win.
 		},
 
 		// First daily entries stuff:

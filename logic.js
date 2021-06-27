@@ -7,45 +7,28 @@ function setCounterBalancedStuff(subID, settings) {
   let lastDevalDay = [];
   let group;
   let dayToFinishExperiment;
+  let isRatioSchedule;
+
+  // days of maniulations will all be like what was for the short training group (could be deterministic in this experiment but for simplicity in adjusting the experiment I just left it in this function)
+  firstDevalDay = settings.optionalDaysForFirstDeval[1];
+  firstComparableValDay = settings.optionalDaysForFirstDeval[0];
+  firstComparableValDay_PostDeval = settings.optionalDaysForFirstDeval[2];
+  lastDevalDay = settings.optionalDaysForLastDeval[1];
+  lastComparableValDay = settings.optionalDaysForLastDeval[0];
+  lastComparableValDay_PostDeval = settings.optionalDaysForLastDeval[2];
+
+  dayToFinishExperiment = settings.dayToFinishExperiment_ShortTraining
 
   // Determine group:
-  // *UPDATE: I THE CANCELLED COUNTER-BALANCING (original values are commeneted):
-  if (subID % 300 > 100 && subID % 300 < 200) {
-    group = 'short_training'; // subject numbers 101-199, 401-499, 701-799 etc
-
-    firstDevalDay = settings.optionalDaysForFirstDeval[1];
-    firstComparableValDay = settings.optionalDaysForFirstDeval[0];
-    firstComparableValDay_PostDeval = settings.optionalDaysForFirstDeval[2];
-    lastDevalDay = settings.optionalDaysForLastDeval[1];
-    lastComparableValDay = settings.optionalDaysForLastDeval[0];
-    lastComparableValDay_PostDeval = settings.optionalDaysForLastDeval[2];
-
-    dayToFinishExperiment = settings.dayToFinishExperiment_ShortTraining
-  } else if (subID % 300 > 200 && subID % 300 < 300) {
-    group = 'long_training'; // subject numbers 201-299, 501-599, 801-899 etc
-
-    firstDevalDay = null;
-    firstComparableValDay = null;
-    firstComparableValDay_PostDeval = null;
-    lastDevalDay = settings.optionalDaysForLastDeval[1];
-    lastComparableValDay = settings.optionalDaysForLastDeval[0];
-    lastComparableValDay_PostDeval = settings.optionalDaysForLastDeval[2];
-
-    dayToFinishExperiment = settings.dayToFinishExperiment_LongTraining
-  } else if (subID % 300 < 100) {
-    group = 'long_training_parallel_manipulations'; // subject numbers 301-399, 601-699, 901-999 etc.
-
-    firstDevalDay = settings.optionalDaysForFirstDeval[1]; // in this group it will be translated into another still-valued manipulation
-    firstComparableValDay = settings.optionalDaysForFirstDeval[0];
-    firstComparableValDay_PostDeval = settings.optionalDaysForFirstDeval[2];
-    lastDevalDay = settings.optionalDaysForLastDeval[1];
-    lastComparableValDay = settings.optionalDaysForLastDeval[0];
-    lastComparableValDay_PostDeval = settings.optionalDaysForLastDeval[2];
-
-    dayToFinishExperiment = settings.dayToFinishExperiment_LongTraining
+  if (subID % 200 > 100) {
+    group = 'VR_training'; // subject numbers 1101-1199, 1301-1399, 1501-1599 etc
+    isRatioSchedule = true
+  } else {
+    group = 'VI_training'; // subject numbers 1201-1299, 1401-1499, 1601-1699 etc
+    isRatioSchedule = false
   }
 
-  return [group, firstDevalDay, lastDevalDay, firstComparableValDay, lastComparableValDay, firstComparableValDay_PostDeval, lastComparableValDay_PostDeval, dayToFinishExperiment];
+  return [group, isRatioSchedule, firstDevalDay, lastDevalDay, firstComparableValDay, lastComparableValDay, firstComparableValDay_PostDeval, lastComparableValDay_PostDeval, dayToFinishExperiment];
 }
 
 function getTimeFromLastEntryInSec(timePoint) {
@@ -57,25 +40,25 @@ function getTimeFromLastEntryInSec(timePoint) {
   return diffSeconds;
 }
 
-function checkWinning(subData, isRatioSchedule, winningChancePerUnit, winAnywayIfMultipleNonWins, enforceFirstEntryWinSecondEntryNoWin) {
-  if (enforceFirstEntryWinSecondEntryNoWin &&
+function checkWinning(subData, isRatioSchedule, rewardSettings) {
+  if (rewardSettings.enforceFirstEntryWinSecondEntryNoWin &&
     ((subData.resetContainer[subData.resetContainer.length - 1] && !!subData.endTime[subData.endTime.length - 1]) ||
     (subData.isFirstTime[subData.isFirstTime.length - 1] && !!subData.endTime[subData.endTime.length - 1])) &&
     (!subData.isWin[subData.isWin.length - 1])) { // check first if it's the second entry today (where a reward must be given). [* the last line is just for the case of when a manipulation is initiated on the first entry that day and isWin is True.]
     return true
   }
   if (isRatioSchedule) { // RI schedule
-    if (winAnywayIfMultipleNonWins && subData.endTime && subData.endTime.length >= app_settings.rewards.RelativeNonWinUnitsBeforeSureWinning()) { // If sure win following no wins is on and it's not the beginning check last wins
+    if (rewardSettings.winAnywayIfMultipleNonWins && subData.endTime && subData.endTime.length >= app_settings.rewards.RelativeNonWinUnitsBeforeSureWinning()) { // If sure win following no wins is on and it's not the beginning check last wins
       const indicesWithEndTime = subData.endTime.map((x) => !!x).multiIndexOf(true)
       const relevantIndicesToCheck = indicesWithEndTime.slice(length - app_settings.rewards.RelativeNonWinUnitsBeforeSureWinning())
       if (!relevantIndicesToCheck.filter((x) => subData.isWin[x]).length) { // this checks if there was no win in the relevant times.
         return true
       }
     }
-    return Math.random() < winningChancePerUnit;
+    return Math.random() < rewardSettings.winningChancePerUnitVR_schedule();
   } else { // namely a VI schedule
     if (!!Object.keys(subData).length) { // if there is some data for this subject *********** THIS NEED TO BE RECHECKED [WAS NOT TESTED] *************
-      if (winAnywayIfMultipleNonWins && subData.endTime && subData.endTime.length >= app_settings.rewards.RelativeNonWinUnitsBeforeSureWinning()) { // If sure win following no wins is on and it's not the beginning check last wins
+      if (rewardSettings.winAnywayIfMultipleNonWins && subData.endTime && subData.endTime.length >= app_settings.rewards.RelativeNonWinUnitsBeforeSureWinning()) { // If sure win following no wins is on and it's not the beginning check last wins
         const ms_per_second = 1000;
         const timeToCheckBack = new Date(new Date() - ms_per_second * app_settings.rewards.RelativeNonWinUnitsBeforeSureWinning())
         const firstEntryAfterTimeToCheck = subData.outcomeTime.find((x) => new Date(x) > timeToCheckBack)
@@ -85,12 +68,12 @@ function checkWinning(subData, isRatioSchedule, winningChancePerUnit, winAnywayI
         }
       } else {
         const lastEntryTime = new Date([...subData.outcomeTime].reverse().find(element => !!element)); // [NOTE] Make sure later it always takes the final line. Consider if this should be the start time or the endtime or reward time
-        var secsFromLastEntry = getTimeFromLastEntryInSec(lastEntryTime);
+        var secsFromLastEntry = getTimeFromLastEntryInSec(lastEntryTime) + 5;  // The +5 is an estimation of the time it takes to get from the startTime to the OutcomeTime based o previous studies. // Orignially there was also -1 to account for the time between outcomeTime and EndTime but I wantto account with +1 to reach the time of the next time so they cancelled each other.
       }
     } else { // i.e., first entry
       var secsFromLastEntry = 1;
     }
-    chanceOfWinning = 1 - Math.pow(1 - winningChancePerUnit, secsFromLastEntry); // I verified that it does the job correctly :) ; This is calculated as the chances of at least 1 win.
+    chanceOfWinning = 1 - Math.pow(1 - rewardSettings.winningChancePerUnitVI_schedule(), secsFromLastEntry); // I verified that it does the job correctly :) ; This is calculated as the chances of at least 1 win.
     return Math.random() < chanceOfWinning;
   }
 }
@@ -292,7 +275,7 @@ var logic = {
     } else {
 
       // Get counter-balanced stuff and Initialize variables:
-      [group, firstDevalDay, lastDevalDay, firstComparableValDay, lastComparableValDay, firstComparableValDay_PostDeval, lastComparableValDay_PostDeval, dayToFinishExperiment] = setCounterBalancedStuff(data_helper.get_subject_id(), app_settings);
+      [group, isRatioSchedule, firstDevalDay, lastDevalDay, firstComparableValDay, lastComparableValDay, firstComparableValDay_PostDeval, lastComparableValDay_PostDeval, dayToFinishExperiment] = setCounterBalancedStuff(data_helper.get_subject_id(), app_settings);
       var isUnderManipulation = false;
       var whichManipulation = null;
       var activateManipulation = false;
@@ -324,7 +307,7 @@ var logic = {
 
         // Reset container
         // ---------------------------
-        isWin = settings.rewards.enforceFirstEntryWinSecondEntryNoWin && resetContainer ? false : checkWinning(subData, settings.rewards.isRatioSchedule, settings.rewards.winningChancePerUnit(), settings.rewards.winAnywayIfMultipleNonWins, settings.rewards.enforceFirstEntryWinSecondEntryNoWin);
+        isWin = settings.rewards.enforceFirstEntryWinSecondEntryNoWin && resetContainer ? false : checkWinning(subData, isRatioSchedule, settings.rewards);
 
         // OPERATE MANIPULATION DAY (DEVALUATION)
         // ---------------------------------------
@@ -367,7 +350,7 @@ var logic = {
         var toHideOutcome = !endExperiment ? checkIfToHideOutcome(subData, settings.hideOutcome, dayOfExperiment, isUnderManipulation, settings.experimentalDayStartingHour, group, completeEntriesToday) : false;
 
       } else { // if it is the first entry
-        isWin = settings.rewards.enforceFirstEntryWinSecondEntryNoWin ? false : checkWinning(subData, settings.rewards.isRatioSchedule, settings.rewards.winningChancePerUnit(), settings.rewards.winAnywayIfMultipleNonWins);
+        isWin = settings.rewards.enforceFirstEntryWinSecondEntryNoWin ? false : checkWinning(subData, isRatioSchedule, settings.rewards);
         dayOfExperiment = 1;
         var resetContainer = false;
       }

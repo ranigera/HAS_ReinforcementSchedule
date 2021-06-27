@@ -60,8 +60,8 @@ window.app_settings = {
 	},
 	rewards: {
 		//isRatioSchedule: true,
-		winningRateVR_schedule: 3, //per entries if isRatioSchedule is true; per seconds if isRatioSchedule is false, 
-		winningRateVI_schedule: 30, //per entries if isRatioSchedule is true; per seconds if isRatioSchedule is false, 
+		winningRateVR_schedule: 3, //per entries
+		winningRateVI_schedule: 30, //per seconds
 		winningChancePerUnitVR_schedule: function () {
 			return 1 / this.winningRateVR_schedule;
 		},

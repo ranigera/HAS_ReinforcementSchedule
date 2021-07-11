@@ -61,7 +61,7 @@ window.app_settings = {
 	rewards: {
 		//isRatioSchedule: true,
 		winningRateVR_schedule: 3, //per entries
-		winningRateVI_schedule: 30, //per seconds
+		winningRateVI_schedule: 100, //per seconds
 		winningChancePerUnitVR_schedule: function () {
 			return 1 / this.winningRateVR_schedule;
 		},
@@ -83,7 +83,7 @@ window.app_settings = {
 		},
 
 		// First daily entries stuff:
-		enforceFirstEntryWinSecondEntryNoWin: true,
+		enforceFirstEntryWinSecondEntryNoWin: false,
 
 		notifyRewardContainerReset: true,
 	},
